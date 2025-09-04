@@ -107,3 +107,13 @@ void myTcpServer::recvFromGui(const QString &data)
     }
 }
 
+void myTcpServer::recvFromGuiFile(const QByteArray &data)
+{
+    for (QTcpSocket *socket : clientSockets) {
+        if (socket && socket->state() == QAbstractSocket::ConnectedState) {
+            socket->write(data);
+            socket->flush();
+        }
+    }
+}
+

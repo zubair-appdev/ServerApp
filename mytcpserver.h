@@ -24,6 +24,7 @@ private slots:
 
 public slots:
     void recvFromGui(const QString& data);
+    void recvFromGuiFile(const QByteArray &data);  // new slot for file sending
 
 private:
     QTcpServer *myServer;
