@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QApplication>
 #include <QStandardPaths>
+#include <QTextEdit>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -31,6 +32,8 @@ public:
         loop.exec();
         QApplication::processEvents();  // Keep UI healthy
     }
+
+    void scrollDown(QTextEdit *myEdit);
 
 public slots:
     void handleRawData(const QString &rawData);

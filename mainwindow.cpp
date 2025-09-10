@@ -20,6 +20,15 @@ MainWindow::~MainWindow()
     delete myServer;  // Clean up the server object
 }
 
+void MainWindow::scrollDown(QTextEdit *myEdit)
+{
+    // Always scroll to bottom
+       QTextCursor cursor = myEdit->textCursor();
+       cursor.movePosition(QTextCursor::End);
+       myEdit->setTextCursor(cursor);
+       myEdit->ensureCursorVisible();
+}
+
 void MainWindow::handleRawData(const QString &rawData)
 {
     ui->textEdit_server->append(rawData);
@@ -41,6 +50,8 @@ void MainWindow::on_pushButton_serverSend_clicked()
         // Show a warning message if no client is connected
         QMessageBox::warning(this, "Warning", "No client connected. Cannot send message.");
     }
+
+    scrollDown(ui->textEdit_server);
 }
 
 
@@ -159,19 +170,18 @@ void MainWindow::on_pushButton_sendFile_clicked()
                 }
             }
 
+
             qApp->processEvents(); // Keep UI responsive
 
         }
 
         ui->textEdit_server->append("Repeater : "+QString::number(packetCounter));
-        QString ender = "###_FILE_DONE_###";
-        QByteArray doneMsg = ender.toUtf8();
-        emit sendToRawFile(doneMsg);
 
 
         file->close();
         file->deleteLater();
         ui->textEdit_server->append("File sent: " + fileName);
+        scrollDown(ui->textEdit_server);
     }
 }
 

@@ -12,3 +12,6 @@ Ver 1.3 ------------------------------------------------------------------------
 
 Ver 1.4 --------------------------------------------------------------------------------------
 - Send File option added in both client and server.
+
+Ver 1.5 -------------------------------------------------------------------------------------
+- Removed marker based protocol like ###_FILE_DONE_### as it may interfere with raw binary data and added length based comparision.
