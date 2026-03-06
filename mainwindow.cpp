@@ -109,7 +109,6 @@ void MainWindow::startGameTimer()
         if(remainingTime <= 0)
         {
             gameTimer->stop();
-            lightPause(20);
             handleGameOver();
         }
 
@@ -144,9 +143,7 @@ void MainWindow::handleFoodEaten(int id)
     ui->label_myScore->setText(QString::number(myScore));
 
     emit sendToRaw(QString("@@@REMOVE@@@_%1").arg(id));
-    lightPause(20);
     emit sendToRaw(QString("@@@SCORE_SERVER@@@_%1").arg(myScore));
-    lightPause(20);
 }
 
 void MainWindow::removeFoodById(int id)
@@ -350,9 +347,7 @@ void MainWindow::handleRawData(const QString &rawData)
 
         // sync removal + score to client
         emit sendToRaw(QString("@@@REMOVE@@@_%1").arg(id));
-        lightPause(20);
         emit sendToRaw(QString("@@@SCORE_CLIENT@@@_%1").arg(enemyScore));
-        lightPause(20);
     }
 }
 
@@ -568,8 +563,6 @@ void MainWindow::on_pushButton_generateEatables_clicked()
     resetThings();
 
     spawnInitialFood();
-
-    lightPause(20);
 
     startGameTimer();
 }
