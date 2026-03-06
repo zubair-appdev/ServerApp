@@ -12,6 +12,12 @@
 #include <QApplication>
 #include <QStandardPaths>
 #include <QTextEdit>
+#include <QKeyEvent>
+#include <QRandomGenerator>
+
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
+#include <QSoundEffect>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -35,6 +41,25 @@ public:
 
     void scrollDown(QTextEdit *myEdit);
 
+    void spawnInitialFood();
+
+    void startGameTimer();
+
+    void checkFoodCollision();
+
+    void handleFoodEaten(int id);
+
+    void removeFoodById(int id);
+
+    void handleGameOver();
+
+    void resetThings();
+
+    void initializeMusic();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+
 public slots:
     void handleRawData(const QString &rawData);
 
@@ -49,6 +74,16 @@ private slots:
 
     void on_pushButton_sendFile_clicked();
 
+    void on_actionPlay_Game_triggered();
+
+    void on_pushButton_back_clicked();
+
+    void setInitialPos();
+
+    void on_pushButton_generateEatables_clicked();
+
+    void on_actionSync_720p_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -56,5 +91,21 @@ private:
 
     bool serverConnected;
     int port;
+
+    QTimer *gameTimer = nullptr;
+    int remainingTime = 0;
+
+    QVector<QLabel*> eatables;
+
+    const int TOTAL_FOOD = 25;
+
+    int myScore = 0;      // server score
+    int enemyScore = 0;   // client score (later use)
+
+    int globalFoodId = 0;
+
+    QMediaPlayer *bgMusic;
+    QMediaPlaylist *playlist;
+    QSoundEffect *eatSound;
 };
 #endif // MAINWINDOW_H

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>mixkit-video-game-retro-click-237.wav</file>
+        <file>mixkit-wedding-01-657.mp3</file>
+    </qresource>
+</RCC>

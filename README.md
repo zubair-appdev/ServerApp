@@ -15,3 +15,6 @@ Ver 1.4 ------------------------------------------------------------------------
 
 Ver 1.5 -------------------------------------------------------------------------------------
 - Removed marker based protocol like ###_FILE_DONE_### as it may interfere with raw binary data and added length based comparision.
+
+Ver 1.6 ------------------------------------------------------------------------------------
+- Added game mode. Server will decide entire rules (Server Authority).
