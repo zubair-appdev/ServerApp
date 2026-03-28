@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page_main">
        <layout class="QGridLayout" name="gridLayout_2">
@@ -409,6 +409,129 @@ border-bottom-left-radius:15px;</string>
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="page_ptp">
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="1">
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>167</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>214</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="1">
+         <widget class="QGroupBox" name="groupBox">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="title">
+           <string>PTP Protocol</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="0" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <item>
+              <widget class="QPushButton" name="pushButton_startPTP">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Start PTP</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_stopPTP">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Stop PTP</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="pushButton_back_ptp">
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Back</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>214</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="2" column="1">
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>167</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -429,7 +552,14 @@ border-bottom-left-radius:15px;</string>
     <addaction name="actionPlay_Game"/>
     <addaction name="actionSync_720p"/>
    </widget>
+   <widget class="QMenu" name="menuPTP">
+    <property name="title">
+     <string>PTP</string>
+    </property>
+    <addaction name="actionPTP_Page"/>
+   </widget>
    <addaction name="menuGame_Mode"/>
+   <addaction name="menuPTP"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionPlay_Game">
@@ -440,6 +570,11 @@ border-bottom-left-radius:15px;</string>
   <action name="actionSync_720p">
    <property name="text">
     <string>Sync 720p</string>
+   </property>
+  </action>
+  <action name="actionPTP_Page">
+   <property name="text">
+    <string>PTP Page</string>
    </property>
   </action>
  </widget>

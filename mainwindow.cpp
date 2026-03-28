@@ -25,6 +25,16 @@ MainWindow::~MainWindow()
     delete myServer;  // Clean up the server object
 }
 
+void MainWindow::startPtpSync()
+{
+    qint64 t1 = now_us();
+
+    QString msg =
+        QString("@@@SYNC@@@_%1").arg(t1);
+
+    emit sendToRaw(msg);
+}
+
 void MainWindow::scrollDown(QTextEdit *myEdit)
 {
     // Always scroll to bottom
@@ -349,6 +359,32 @@ void MainWindow::handleRawData(const QString &rawData)
         emit sendToRaw(QString("@@@REMOVE@@@_%1").arg(id));
         emit sendToRaw(QString("@@@SCORE_CLIENT@@@_%1").arg(enemyScore));
     }
+
+    //PTP Code
+
+    QRegularExpression reDelayReq(
+        "@@@DELAY_REQ@@@_(\\d+)");
+
+    QRegularExpressionMatch match =
+        reDelayReq.match(rawData);
+
+    if(match.hasMatch())
+    {
+        t3 = match.captured(1).toLongLong();
+
+        t4 = now_us();
+
+        QString resp =
+            QString("@@@DELAY_RESP@@@_%1")
+            .arg(t4);
+
+        emit sendToRaw(resp);
+
+        qDebug()
+            << "DELAY_REQ received"
+            << "t3:" << t3
+            << "t4:" << t4;
+    }
 }
 
 void MainWindow::on_pushButton_serverSend_clicked()
@@ -570,4 +606,47 @@ void MainWindow::on_pushButton_generateEatables_clicked()
 void MainWindow::on_actionSync_720p_triggered()
 {
     this->setFixedSize(1280,720);
+}
+
+void MainWindow::on_actionPTP_Page_triggered()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_ptp);
+}
+
+void MainWindow::on_pushButton_back_ptp_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_main);
+}
+
+void MainWindow::on_pushButton_startPTP_clicked()
+{
+    if(!ptpTimer)
+    {
+        ptpTimer = new QTimer(this);
+
+        connect(ptpTimer,
+                &QTimer::timeout,
+                this,
+                &MainWindow::startPtpSync);
+    }
+
+    if(!ptpTimer->isActive())
+    {
+        ptpTimer->start(1000);
+
+        qDebug() << "PTP Timer started";
+    }
+}
+
+void MainWindow::on_pushButton_stopPTP_clicked()
+{
+    if(ptpTimer)
+    {
+        if(ptpTimer->isActive())
+        {
+            ptpTimer->stop();
+
+            qDebug() << "PTP Timer stopped";
+        }
+    }
 }
