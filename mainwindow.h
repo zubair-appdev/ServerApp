@@ -73,6 +73,24 @@ public:
 
     void initializeMusic();
 
+    void spawnSpecialBall();
+
+    void generateSpecialSpawnSchedule();
+
+    void checkSpecialCollision();
+
+    void removeSpecialById(int id);
+
+    QRect drawLaser(
+        int direction,
+        bool isClient
+    );
+
+    void checkLaserHit(
+        QRect laserRect,
+        bool firedByClient
+    );
+
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -108,6 +126,8 @@ private slots:
 
     void on_pushButton_stopPTP_clicked();
 
+    void on_actionHelp_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -131,11 +151,40 @@ private:
     QMediaPlayer *bgMusic;
     QMediaPlaylist *playlist;
     QSoundEffect *eatSound;
+    QSoundEffect *laserSound;
 
     QTimer *ptpTimer = nullptr;
 
     qint64 t1 = 0;
     qint64 t3 = 0;
     qint64 t4 = 0;
+
+    // SPECIAL BALL SYSTEM
+
+    QVector<QLabel*> specialBalls;
+
+    QVector<int> specialSpawnTimes;
+
+    int specialBallId = 0;
+
+    int bulletCount = 0;
+    int clientBulletCount = 0;
+
+    enum Direction
+    {
+        RIGHT = 0,
+        LEFT,
+        UP,
+        DOWN
+    };
+
+    int lastDirection = RIGHT;
+
+    int boostSteps = 0;      // remaining boost moves
+    int normalStep = 0;      // default movement
+    int boostStep = 0;      // boosted movement
+    bool useBoost = false;   // next move uses boost
+
+    int clientBoostSteps = 0;
 };
 #endif // MAINWINDOW_H

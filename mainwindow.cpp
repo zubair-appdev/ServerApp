@@ -17,6 +17,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Music
     initializeMusic();
+
+    // Steps
+    normalStep = ui->groupBox_gamePad->width() * 0.01;
+    boostStep = ui->groupBox_gamePad->width() * 0.2;
+
 }
 
 MainWindow::~MainWindow()
@@ -85,6 +90,33 @@ void MainWindow::startGameTimer()
 {
     remainingTime = ui->spinBox_gameTime->value() * 60;
 
+    // Initialize steps
+    int minutes =
+        ui->spinBox_gameTime->value();
+
+    boostSteps =
+        minutes * 12;
+
+    ui->label_steps->setText(
+        QString::number(boostSteps)
+    );
+
+    ui->label_steps_client->setText(
+            QString::number(boostSteps)
+    );
+
+    qDebug()
+        << "Boost steps initialized:"
+        << boostSteps;
+
+    // Send server boost steps
+
+    emit sendToRaw(
+        QString(
+            "@@@BOOST_STEPS@@@_%1"
+        ).arg(boostSteps)
+    );
+
     if(gameTimer)
     {
         gameTimer->stop();
@@ -96,6 +128,23 @@ void MainWindow::startGameTimer()
     connect(gameTimer, &QTimer::timeout, this, [=]()
     {
         remainingTime--;
+
+        int currentSecond =
+            remainingTime % 60;
+
+        // NEW MINUTE
+
+        if(currentSecond == 59)
+        {
+            generateSpecialSpawnSchedule();
+        }
+
+        // SPAWN
+
+        if(specialSpawnTimes.contains(currentSecond))
+        {
+            spawnSpecialBall();
+        }
 
         int m = remainingTime / 60;
         int s = remainingTime % 60;
@@ -217,6 +266,28 @@ void MainWindow::handleGameOver()
 
     // Optional: reset timer label
     ui->label_timer->setText("00:00");
+
+    for(QLabel* s : specialBalls)
+        s->deleteLater();
+
+    specialBalls.clear();
+
+    specialSpawnTimes.clear();
+
+    bulletCount = 0;
+
+    ui->label_bullets->setText("0");
+
+    clientBulletCount = 0;
+
+    ui->label_bullets_client
+        ->setText("0");
+
+    boostSteps = 0;
+    ui->label_steps->setText("0");
+
+    clientBoostSteps = 0;
+    ui->label_steps_client->setText("0");
 }
 
 void MainWindow::resetThings()
@@ -238,6 +309,32 @@ void MainWindow::resetThings()
     ui->label_timer->setText("00:00");
     ui->label_myScore->setText("0");
     ui->label_enemyScore->setText("0");
+
+    // For Special ball clearance
+    for(QLabel* s : specialBalls)
+        s->deleteLater();
+
+    specialBalls.clear();
+
+    specialBallId = 0;
+
+    specialSpawnTimes.clear();
+
+    bulletCount = 0;
+
+    ui->label_bullets->setText("0");
+
+    clientBulletCount = 0;
+
+    ui->label_bullets_client
+        ->setText("0");
+
+    boostSteps = 0;
+    ui->label_steps->setText("0");
+
+    clientBoostSteps = 0;
+    ui->label_steps_client->setText("0");
+
 }
 
 void MainWindow::initializeMusic()
@@ -256,6 +353,338 @@ void MainWindow::initializeMusic()
     eatSound = new QSoundEffect(this);
     eatSound->setSource(QUrl("qrc:/new/prefix1/mixkit-video-game-retro-click-237.wav"));
     eatSound->setVolume(0.9);
+
+    // laser sound
+    laserSound = new QSoundEffect(this);
+    laserSound->setSource(QUrl("qrc:/new/prefix1/mixkit-laser-cannon-shot-1678.wav"));
+    laserSound->setVolume(0.9);
+}
+
+void MainWindow::spawnSpecialBall()
+{
+    QWidget *pad = ui->groupBox_gamePad;
+
+    int id = specialBallId++;
+
+    double rx = 0.05 + QRandomGenerator::global()->bounded(0.90);
+    double ry = 0.05 + QRandomGenerator::global()->bounded(0.90);
+
+    QLabel *ball = new QLabel(pad);
+
+    ball->resize(16,16);
+
+    ball->setStyleSheet(
+        "background:black;"
+        "border-radius:8px;"
+    );
+
+    int x = rx * (pad->width()  - ball->width());
+    int y = ry * (pad->height() - ball->height());
+
+    ball->move(x,y);
+    ball->show();
+
+    ball->setProperty("specialId", id);
+
+    specialBalls.append(ball);
+
+    // SEND TO CLIENT
+
+    QString msg =
+        QString("@@@SPECIAL@@@_%1_%2_%3")
+        .arg(id)
+        .arg(rx)
+        .arg(ry);
+
+    emit sendToRaw(msg);
+
+    qDebug()
+        << "Special ball spawned ID:"
+        << id;
+}
+
+void MainWindow::generateSpecialSpawnSchedule()
+{
+    specialSpawnTimes.clear();
+
+    int count;
+
+    if(QRandomGenerator::global()->bounded(100) < 30)
+        count = 4;
+    else
+        count = 3;
+
+    const int MIN_GAP = 8;
+
+    while(specialSpawnTimes.size() < count)
+    {
+        int sec =
+            QRandomGenerator::global()
+            ->bounded(60);
+
+        bool valid = true;
+
+        for(int existing : specialSpawnTimes)
+        {
+            if(qAbs(existing - sec) < MIN_GAP)
+            {
+                valid = false;
+                break;
+            }
+        }
+
+        if(valid)
+            specialSpawnTimes.append(sec);
+    }
+
+    std::sort(
+        specialSpawnTimes.begin(),
+        specialSpawnTimes.end()
+    );
+
+    qDebug()
+        << "Special spawn times:"
+        << specialSpawnTimes;
+}
+
+void MainWindow::checkSpecialCollision()
+{
+    QRect playerRect =
+        ui->label_gameBox->geometry();
+
+    for(int i = 0; i < specialBalls.size(); i++)
+    {
+        QLabel *ball =
+            specialBalls[i];
+
+        if(playerRect.intersects(
+                ball->geometry()))
+        {
+            int id =
+                ball->property(
+                    "specialId"
+                ).toInt();
+
+            qDebug()
+                << "Special collected ID:"
+                << id;
+
+            // Remove from UI
+
+            ball->deleteLater();
+
+            specialBalls.removeAt(i);
+            eatSound->play();
+
+            // Increase bullets
+
+            bulletCount += 4;
+
+            ui->label_bullets->setText(
+                QString::number(
+                    bulletCount
+                )
+            );
+
+            // Sync removal
+
+            emit sendToRaw(
+                QString(
+                    "@@@SPECIAL_REMOVE@@@_%1"
+                ).arg(id)
+            );
+
+            // Sync bullet count
+
+            emit sendToRaw(
+                QString(
+                    "@@@BULLETS@@@_%1"
+                ).arg(bulletCount)
+            );
+
+            break;
+        }
+    }
+}
+
+void MainWindow::removeSpecialById(int id)
+{
+    for(int i = 0;
+        i < specialBalls.size();
+        i++)
+    {
+        QLabel *ball =
+            specialBalls[i];
+
+        if(ball->property(
+               "specialId"
+           ).toInt() == id)
+        {
+            qDebug()
+                << "Server removing special ID:"
+                << id;
+
+            ball->deleteLater();
+
+            specialBalls.removeAt(i);
+
+            return;
+        }
+    }
+}
+
+QRect MainWindow::drawLaser(
+    int direction,
+    bool isClient
+)
+{
+    QWidget *pad =
+        ui->groupBox_gamePad;
+
+    QLabel *player;
+
+    if(isClient)
+        player =
+            ui->label_gameBox_enemy;
+    else
+        player =
+            ui->label_gameBox;
+
+    QPoint pos =
+        player->pos();
+
+    int length =
+        pad->width() * 0.4;
+
+    int thickness = 6;
+
+    QFrame *laser =
+        new QFrame(pad);
+
+    laser->setStyleSheet(
+        "background:red;"
+    );
+
+    QRect rect;
+
+    if(direction == 0) // RIGHT
+    {
+        rect =
+            QRect(
+                pos.x() + player->width(),
+                pos.y() +
+                player->height()/2,
+                length,
+                thickness
+            );
+    }
+    else if(direction == 1) // LEFT
+    {
+        rect =
+            QRect(
+                pos.x() - length,
+                pos.y() +
+                player->height()/2,
+                length,
+                thickness
+            );
+    }
+    else if(direction == 2) // UP
+    {
+        rect =
+            QRect(
+                pos.x() +
+                player->width()/2,
+                pos.y() - length,
+                thickness,
+                length
+            );
+    }
+    else // DOWN
+    {
+        rect =
+            QRect(
+                pos.x() +
+                player->width()/2,
+                pos.y() +
+                player->height(),
+                thickness,
+                length
+            );
+    }
+
+    laser->setGeometry(rect);
+
+    laser->show();
+
+    laserSound->play();
+
+    QTimer::singleShot(
+        200,
+        laser,
+        &QFrame::deleteLater
+    );
+
+    return rect;
+}
+
+void MainWindow::checkLaserHit(
+    QRect laserRect,
+    bool firedByClient
+)
+{
+    QRect targetRect;
+
+    if(firedByClient)
+        targetRect =
+            ui->label_gameBox
+                ->geometry();
+    else
+        targetRect =
+            ui->label_gameBox_enemy
+                ->geometry();
+
+    if(laserRect.intersects(
+            targetRect))
+    {
+        qDebug()
+            << "LASER HIT DETECTED";
+
+        if(firedByClient)
+        {
+            myScore -= 5;
+
+            ui->label_myScore
+                ->setText(
+                    QString::number(
+                        myScore
+                    )
+                );
+
+            emit sendToRaw(
+                QString(
+                    "@@@SCORE_SERVER@@@_%1"
+                ).arg(myScore)
+            );
+        }
+        else
+        {
+            enemyScore -= 5;
+
+            ui->label_enemyScore
+                ->setText(
+                    QString::number(
+                        enemyScore
+                    )
+                );
+
+            emit sendToRaw(
+                QString(
+                    "@@@SCORE_CLIENT@@@_%1"
+                ).arg(enemyScore)
+            );
+        }
+    }
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -263,26 +692,117 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     QLabel *box = ui->label_gameBox;
     QWidget *pad = ui->groupBox_gamePad;
 
-    int step = 5; // movement speed (pixels)
+    int step;
+
+    if(useBoost)
+    {
+        step = boostStep;   // 0.2
+
+        useBoost = false;   // reset after one move
+    }
+    else
+    {
+        step = normalStep;  // 0.01
+    }
 
     QPoint pos = box->pos();
+
+    if(event->key() == Qt::Key_X)
+    {
+        if(bulletCount <= 0)
+        {
+            qDebug() << "Server has no bullets";
+            return;
+        }
+
+        bulletCount--;
+
+        ui->label_bullets->setText(
+            QString::number(bulletCount)
+        );
+
+        qDebug()
+            << "Server fired laser direction:"
+            << lastDirection;
+
+        // Draw locally
+        QRect laserRect =
+            drawLaser(
+                lastDirection,
+                false
+            );
+
+        checkLaserHit(
+            laserRect,
+            false
+        );
+
+        // 🔥 Inform client
+
+        emit sendToRaw(
+            QString(
+                "@@@DRAW_LASER_SERVER@@@_%1_%2"
+            )
+            .arg(lastDirection)
+            .arg(bulletCount)
+        );
+
+        return;
+    }
+
+   //Boost Steps Code
+    if(event->key() == Qt::Key_Z)
+    {
+        if(boostSteps <= 0)
+        {
+            qDebug()
+                << "No boost steps remaining";
+
+            return;
+        }
+
+        boostSteps--;
+
+        useBoost = true;
+
+        ui->label_steps->setText(
+            QString::number(boostSteps)
+        );
+
+        qDebug()
+            << "Boost activated. Remaining:"
+            << boostSteps;
+
+        // 🔥 Sync to client (fair display)
+        emit sendToRaw(
+            QString(
+                "@@@BOOST_STEPS@@@_%1"
+            ).arg(boostSteps)
+        );
+
+        return;
+    }
 
     switch (event->key())
     {
         case Qt::Key_Left:
             pos.rx() -= step;
+            lastDirection = LEFT;
             break;
 
         case Qt::Key_Right:
             pos.rx() += step;
+            lastDirection = RIGHT;
             break;
 
         case Qt::Key_Up:
             pos.ry() -= step;
+            lastDirection = UP;
             break;
 
         case Qt::Key_Down:
             pos.ry() += step;
+            lastDirection = DOWN;
             break;
 
         default:
@@ -304,6 +824,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
     box->move(pos);
     checkFoodCollision();
+    checkSpecialCollision();
 
     // 🔥 send movement to clients
     QString msg = QString("@@@MOVE_SERVER@@@_%1_%2")
@@ -361,7 +882,6 @@ void MainWindow::handleRawData(const QString &rawData)
     }
 
     //PTP Code
-
     QRegularExpression reDelayReq(
         "@@@DELAY_REQ@@@_(\\d+)");
 
@@ -385,6 +905,122 @@ void MainWindow::handleRawData(const QString &rawData)
             << "t3:" << t3
             << "t4:" << t4;
     }
+
+    // =========================
+    // HANDLE CLIENT BULLETS
+    // =========================
+
+    QRegularExpression reClientBullets(
+        "@@@CLIENT_BULLETS@@@_(\\d+)_(\\d+)"
+    );
+
+    QRegularExpressionMatch bulletMatch =
+        reClientBullets.match(rawData);
+
+    if(bulletMatch.hasMatch())
+    {
+        int count =
+            bulletMatch.captured(1).toInt();
+
+        int id =
+            bulletMatch.captured(2).toInt();
+
+        qDebug()
+            << "Server received client bullets:"
+            << count
+            << "Remove special ID:"
+            << id;
+
+        // Update server's record of client bullets
+
+        clientBulletCount = count;
+
+        ui->label_bullets_client
+            ->setText(
+                QString::number(
+                    clientBulletCount
+                )
+            );
+
+        // Remove special ball on server
+
+        removeSpecialById(id);
+    }
+
+    // =========================
+    // HANDLE SHOOTING
+    // =========================
+    QRegularExpression reShoot(
+        "@@@SHOOT@@@_(\\d+)_(\\d+)"
+    );
+
+    QRegularExpressionMatch shootMatch =
+        reShoot.match(rawData);
+
+    if(shootMatch.hasMatch())
+    {
+        int direction =
+            shootMatch.captured(1).toInt();
+
+        int bullets =
+            shootMatch.captured(2).toInt();
+
+        clientBulletCount = bullets;
+
+        ui->label_bullets_client
+            ->setText(
+                QString::number(
+                    clientBulletCount
+                )
+            );
+
+        qDebug()
+            << "Client fired laser direction:"
+            << direction;
+
+        // 🔥 DRAW LASER
+        QRect laserRect =
+            drawLaser(
+                direction,
+                true
+            );
+
+        checkLaserHit(
+            laserRect,
+            true
+        );
+    }
+
+    // =========================
+    // HANDLE CLIENT BOOST STEPS
+    // =========================
+
+    QRegularExpression reClientBoost(
+        "@@@CLIENT_BOOST_STEPS@@@_(\\d+)"
+    );
+
+    QRegularExpressionMatch boostMatch =
+        reClientBoost.match(rawData);
+
+    if(boostMatch.hasMatch())
+    {
+        int steps =
+            boostMatch.captured(1).toInt();
+
+        clientBoostSteps = steps;
+
+        ui->label_steps_client
+            ->setText(
+                QString::number(
+                    clientBoostSteps
+                )
+            );
+
+        qDebug()
+            << "Server updated client boost steps:"
+            << clientBoostSteps;
+    }
+
 }
 
 void MainWindow::on_pushButton_serverSend_clicked()
@@ -649,4 +1285,74 @@ void MainWindow::on_pushButton_stopPTP_clicked()
             qDebug() << "PTP Timer stopped";
         }
     }
+}
+
+void MainWindow::on_actionHelp_triggered()
+{
+    QString helpText;
+
+    helpText += "================ GAME RULES ================\n\n";
+
+    helpText += "1. STARTING THE GAME\n";
+    helpText += "   - Click the 'Generate Eatables' button on the Server to start the game.\n";
+    helpText += "   - Use the Timer SpinBox to set the game duration (1 to 10 minutes).\n";
+    helpText += "   - Once started, the timer will begin counting down.\n\n";
+
+    helpText += "2. OBJECTIVES\n";
+    helpText += "   - Collect orange eatables to increase your score.\n";
+    helpText += "   - Avoid getting hit by the opponent's laser.\n";
+    helpText += "   - The player with the higher score when the timer ends wins.\n\n";
+
+    helpText += "3. SPECIAL ITEMS (BLACK BALLS)\n";
+    helpText += "   - Special black balls appear periodically during gameplay.\n";
+    helpText += "   - Collecting a black ball gives you 4 bullets.\n";
+    helpText += "   - Bullets are required to shoot lasers.\n\n";
+
+    helpText += "4. SHOOTING LASER\n";
+    helpText += "   - Press arrow keys to choose direction.\n";
+    helpText += "   - Press 'X' to shoot a laser in that direction.\n";
+    helpText += "   - Each shot consumes 1 bullet.\n";
+    helpText += "   - If a laser hits the opponent, their score decreases by 5 points.\n\n";
+
+    helpText += "5. BOOST STEPS (SPEED BOOST)\n";
+    helpText += "   - You receive 12 boost steps per minute of gameplay.\n";
+    helpText += "   - Press 'Z' to use one boost step.\n";
+    helpText += "   - The next movement will be faster than normal.\n";
+    helpText += "   - Each boost can be used only once per key press.\n";
+    helpText += "   - When boost steps reach zero, only normal movement is available.\n\n";
+
+    helpText += "6. SCORE AND STATUS INDICATORS\n";
+    helpText += "   - Blue Label   : Player Score\n";
+    helpText += "   - Red Label    : Enemy Score\n";
+    helpText += "   - Grey Label   : Player Bullets\n";
+    helpText += "   - Yellow Label : Enemy Bullets\n";
+    helpText += "   - Green Label  : Player Boost Steps\n";
+    helpText += "   - Pink Label   : Enemy Boost Steps\n";
+    helpText += "   - Timer Label  : Remaining Game Time\n\n";
+
+    helpText += "7. GAME END\n";
+    helpText += "   - The game automatically ends when the timer reaches 00:00.\n";
+    helpText += "   - The player with the higher score is declared the winner.\n";
+    helpText += "   - All scores, bullets, boost steps, and objects reset for the next game.\n\n";
+
+    helpText += "============================================";
+
+    // Create dialog
+    QDialog *dialog = new QDialog(this);
+    dialog->setWindowTitle("Game Help");
+    dialog->resize(500, 400);
+
+    // Layout
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+
+    // Scrollable text area
+    QTextEdit *textEdit = new QTextEdit(dialog);
+    textEdit->setReadOnly(true);
+    textEdit->setText(helpText);
+
+    layout->addWidget(textEdit);
+
+    dialog->setLayout(layout);
+
+    dialog->exec();
 }
